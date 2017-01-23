@@ -6,7 +6,6 @@ Created on Wed May 18 14:45:10 2016
 """
 
 import numpy as np
-
 #def get_key(key=None,dictionary=None):
 #    """small function to get values from keys in the dictionary of the header.
 #    necessary since the header output has a funny format. To be removed in 
@@ -14,10 +13,11 @@ import numpy as np
 #    return dictionary[str(key)][0:-1]
     
     
-def read_in_data(filePath=None, header = None):
+def read_in_data(filePath=None, header = None, 
+                 readChan1=True,readChan2=True,readChan3=True):
     """function to read the binary data (the actual data coming from the
     Analog Inputs of the NI cards), as recorded by scanM. It requires the
-    dictionary provided by "read_in_header" function. to properly process data"""
+    dictionary provided by "read_in_header" function to properly process data"""
     
     # grab some variables from header dictionary:
     frameWidth = int(header["FrameWidth"])
@@ -35,17 +35,37 @@ def read_in_data(filePath=None, header = None):
 
     ##########___________READ IN PIXELS___________________
 
-    #open binary
-    fid = open(filePath,"rb")
-    dummie1=fid.read(-1)
-    fid.close()
-    dummie = list(dummie1)
-
+    
+    #open binary - right now the whole file is read, which could lead to problems for large files
+#    with open(filePath,"rb") as fid:
+#        dummie1=fid.read(-1)
+#   
     #I suspect that only every other value contains information from the pmts
     #although it could also be that the data stored in "index" is also indicating 
     #something else - sign for instance?
-#        index = np.array(dummie[1::2],dtype=int)
-    values = np.array(dummie[0::2],dtype=int)
+#    values = np.array(list(dummie1[0::2]),dtype=int)
+    
+    #I suspect that only every other value contains information from the pmts
+    #although it could also be that the data stored in "index" is also indicating 
+    #something else - sign for instance?
+    values = np.array([],dtype="int32")
+    #open binary in chunks
+    with open(filePath,"rb") as fid:
+        #move to end of file and get the total number of bytes
+        numBytes = fid.seek(0,2)
+        #move back to beg of file
+        fid.seek(0,0)
+        #read the first fifth of the file
+        temp = fid.read(int(numBytes/5))
+        while temp!= b"":
+            #print (temp)
+            #transform binary to decimal
+            temp = list(temp)
+            #grab only every other value from temp
+            values = np.append(values,temp[::2])
+            #read more fifths of the file
+            temp = fid.read(int(numBytes/5))
+        
 
     #number of channels recorded is given by the data lenght divided by result 
     # of frameWidthXframeHeightXnFrames 
@@ -54,24 +74,37 @@ def read_in_data(filePath=None, header = None):
 
     #empty arrays to store data
     ###to do: preallocate array the size of each should be (nFrames*frameWidth*frameHeight)
-    data1=np.array([],dtype="int32")
-    data2=np.array([],dtype="int32") 
-    data3=np.array([],dtype="int32")
+    if readChan1 is True:
+        data1=np.array([],dtype="int32")
+    if readChan2 is True:
+        data2=np.array([],dtype="int32")
+    if readChan3 is True:
+        data3=np.array([],dtype="int32")
+    
 
     #run through data array to sort into the different channels
     for i in range(0,len(values),nChannels*int(pixBuffer)):
-        channel1Indx = i  
-        data1 = np.concatenate((data1,values[channel1Indx:channel1Indx+int(pixBuffer)]))
+        if readChan1 is True:
+            channel1Indx = i  
+            data1 = np.concatenate((data1,values[channel1Indx:channel1Indx+int(pixBuffer)]))
             
-        if nChannels > 1:
+        if nChannels > 1 and readChan2 is True:
             channel2Indx = i+pixBuffer
             data2 = np.concatenate((data2,values[channel2Indx:channel2Indx+int(pixBuffer)]))
             
-        if nChannels > 2:
+        if nChannels > 2 and readChan3 is True:
             channel3Indx = i+(2*pixBuffer)
             data3 = np.concatenate((data3,values[channel3Indx:channel3Indx+int(pixBuffer)]))
     
-    return data1,data2,data3
+    
+    output = dict()
+    if readChan1 is True:
+        output["chan1"] = data1
+    if readChan2 is True:
+        output["chan2"] = data2
+    if readChan3 is True:
+        output["chan3"] = data3
+    return output
 
 
 def read_in_header(filePath=None):
@@ -90,6 +123,7 @@ def read_in_header(filePath=None):
         #temp=line.split(",")
         temp=line[1:-1:2].split(",")
         #print(temp)
+        #print(temp)
         #store only the data, since in python the data type is defined in a different way
         data =  temp[1:]    
         if data:     #means if there is something stored in the "data" variable
@@ -103,8 +137,11 @@ def read_in_header(filePath=None):
             #remove last empty space, if it exists
             if dicInput[0][-1] == " ":
                 dicInput[0] = dicInput[0][0:-1]
-                
-            dicHead[dicInput[0]]=dicInput[1][0:-1]
+            
+            try:
+                dicHead[dicInput[0]]=dicInput[1][0:-1]
+            except IndexError:
+                print("read more than necessary")
 
 
     fid.close()
@@ -125,6 +162,5 @@ def to_frame(dataArray=[],nFrames=1,frameHeight=512,frameWidth=652):
     
     c1=np.reshape(dataArray[0:nFrames*frameHeight*frameWidth],
                  (nFrames,frameHeight,frameWidth),
-                    order="C")
+                 order="C")
     return c1
-    
