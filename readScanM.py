@@ -14,7 +14,7 @@ import numpy as np
     
     
 def read_in_data(filePath=None, header = None, 
-                 readChan1=True,readChan2=True,readChan3=True):
+                 readChan1=True,readChan2=True,readChan3=True,readChan4=True):
     """function to read the binary data (the actual data coming from the
     Analog Inputs of the NI cards), as recorded by scanM. It requires the
     dictionary provided by "read_in_header" function to properly process data"""
@@ -78,35 +78,43 @@ def read_in_data(filePath=None, header = None,
     #empty arrays to store data
     ###to do: preallocate array the size of each should be (nFrames*frameWidth*frameHeight)
     if readChan1 is True:
-        data1=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+        data1=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype=int)
 #        data1=np.array([],dtype="int32")
     if readChan2 is True:
-        data2=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+        data2=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype=int)
 #        data2=np.array([],dtype="int32")
     if readChan3 is True:
-        data3=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+        data3=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype=int)
 #        data3=np.array([],dtype="int32")
-    
+    if readChan4 is True:
+        data4=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype=int)
+        
     beg1=0
     beg2=0
     beg3=0
+    beg4=0
     for i in range(0,len(values),nChannels*pixBuffer):
         if readChan1 is True:
             end1 = i+int(pixBuffer)
             data1[beg1:beg1+len(values[i:end1])]=values[i:end1]
             beg1=beg1+len(values[i:end1])
         
-        if readChan2 is True:
+        if readChan2 is True and nChannels>=2:
             end2 = i+int(2*pixBuffer)
             chanInd2 = i+pixBuffer
             data2[beg2:beg2+len(values[chanInd2:end2])]=values[chanInd2:end2]
             beg2=beg2+len(values[chanInd2:end2])
         
-        if readChan3 is True:
+        if readChan3 is True and nChannels>=3:
             end3 = i+int(3*pixBuffer)
             chanInd3 = i+2*pixBuffer
             data3[beg3:beg3+len(values[chanInd3:end3])]=values[chanInd3:end3]
-            beg2=beg3+len(values[chanInd3:end3])
+            beg3=beg3+len(values[chanInd3:end3])
+        if readChan4 is True and nChannels>=4:
+            end4 = i+int(4*pixBuffer)
+            chanInd4 = i+3*pixBuffer
+            data4[beg4:beg4+len(values[chanInd4:end4])]=values[chanInd4:end4]
+            beg4=beg4+len(values[chanInd4:end4])
                 
     #run through data array to sort into the different channels
     #x=0
@@ -128,10 +136,12 @@ def read_in_data(filePath=None, header = None,
     output = dict()
     if readChan1 is True:
         output["chan1"] = data1
-    if readChan2 is True:
+    if readChan2 is True and nChannels>=2:
         output["chan2"] = data2
-    if readChan3 is True:
+    if readChan3 is True and nChannels>=3:
         output["chan3"] = data3
+    if readChan4 is True and nChannels>=4:
+        output["chan4"] = data4
     return output
 
 
@@ -192,3 +202,27 @@ def to_frame(dataArray=[],nFrames=1,frameHeight=512,frameWidth=652):
                  (nFrames,frameHeight,frameWidth),
                  order="C")
     return c1
+
+
+def trigger_detection(frameData,triggerLevel=220,triggerMode=1):
+    """detect triggers from one of the recorded channels.
+    in our setup normally channel3 contains trigger data"""
+    #create zeros array. later "ones" will be placed to indicate trigger point.
+    #the array length is equal to the number of frames on the channel used.
+    
+    trigArray = np.zeros(shape=(len(frameData)),dtype=int)
+    indexes=list()
+    for i,frame in enumerate(frameData):
+    
+        if np.any(frame>=triggerLevel):
+            indexes.append(i)
+    
+    ########TODO#########
+    ### figure out if killing triggers that happen next to one another is desirable
+    #####################
+    
+    #drop triggers depending on trigger mode.
+    indexes=indexes[::triggerMode]
+    #populate triggerArray with ones
+    trigArray[indexes]=1
+    return indexes,trigArray

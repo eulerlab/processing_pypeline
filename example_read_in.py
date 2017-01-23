@@ -30,11 +30,20 @@ dicHeader = rsm.read_in_header(filePath = filePath+headerName)
 frameN = int(dicHeader["FrameCounter"])
 frameH = int(dicHeader["FrameHeight"])
 frameW = int(dicHeader["FrameWidth"])
+#sampRate = int(dicHeader[""])
 
 #read in binary data, output is a dictionary, where each key is one channel.
 #up to this point, the data is still serialized
 output = rsm.read_in_data(filePath=filePath+binaryName,header=dicHeader,
-                          readChan1=True,readChan2=True,readChan3=True)
+                          readChan1=True,readChan2=True,readChan3=True,readChan4=False)
 
 #converting the data from serialized to frames. Only doing this for channel1
 frame1 = rsm.to_frame(output["chan1"],nFrames=frameN,frameHeight=frameH,frameWidth=frameW)
+
+
+#convert data from channel three to detect triggers
+frame3 = rsm.to_frame(output["chan3"],nFrames=frameN,frameHeight=frameH,frameWidth=frameW)
+indexes,trigArray1 = rsm.trigger_detection(frameData=frame3,triggerLevel=220,triggerMode=2)
+
+
+
