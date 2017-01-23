@@ -55,9 +55,10 @@ def read_in_data(filePath=None, header = None,
         numBytes = fid.seek(0,2)
         #move back to beg of file
         fid.seek(0,0)
+        #print (fid.tell())
         #read the first fifth of the file
         temp = fid.read(int(numBytes/5))
-        while temp!= b"":
+        while temp != b"":
             #print (temp)
             #transform binary to decimal
             temp = list(temp)
@@ -65,6 +66,7 @@ def read_in_data(filePath=None, header = None,
             values = np.append(values,temp[::2])
             #read more fifths of the file
             temp = fid.read(int(numBytes/5))
+            #print (fid.tell())
         
 
     #number of channels recorded is given by the data lenght divided by result 
@@ -72,30 +74,56 @@ def read_in_data(filePath=None, header = None,
     #- couldn't find this information in the header
     nChannels = int(len(values)/(nFrames*frameWidth*frameHeight))
 
+    
     #empty arrays to store data
     ###to do: preallocate array the size of each should be (nFrames*frameWidth*frameHeight)
     if readChan1 is True:
-        data1=np.array([],dtype="int32")
+        data1=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+#        data1=np.array([],dtype="int32")
     if readChan2 is True:
-        data2=np.array([],dtype="int32")
+        data2=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+#        data2=np.array([],dtype="int32")
     if readChan3 is True:
-        data3=np.array([],dtype="int32")
+        data3=np.zeros(shape = ((nFrames+1)*frameWidth*frameHeight),dtype="int32")
+#        data3=np.array([],dtype="int32")
     
-
-    #run through data array to sort into the different channels
-    for i in range(0,len(values),nChannels*int(pixBuffer)):
+    beg1=0
+    beg2=0
+    beg3=0
+    for i in range(0,len(values),nChannels*pixBuffer):
         if readChan1 is True:
-            channel1Indx = i  
-            data1 = np.concatenate((data1,values[channel1Indx:channel1Indx+int(pixBuffer)]))
-            
-        if nChannels > 1 and readChan2 is True:
-            channel2Indx = i+pixBuffer
-            data2 = np.concatenate((data2,values[channel2Indx:channel2Indx+int(pixBuffer)]))
-            
-        if nChannels > 2 and readChan3 is True:
-            channel3Indx = i+(2*pixBuffer)
-            data3 = np.concatenate((data3,values[channel3Indx:channel3Indx+int(pixBuffer)]))
+            end1 = i+int(pixBuffer)
+            data1[beg1:beg1+len(values[i:end1])]=values[i:end1]
+            beg1=beg1+len(values[i:end1])
+        
+        if readChan2 is True:
+            end2 = i+int(2*pixBuffer)
+            chanInd2 = i+pixBuffer
+            data2[beg2:beg2+len(values[chanInd2:end2])]=values[chanInd2:end2]
+            beg2=beg2+len(values[chanInd2:end2])
+        
+        if readChan3 is True:
+            end3 = i+int(3*pixBuffer)
+            chanInd3 = i+2*pixBuffer
+            data3[beg3:beg3+len(values[chanInd3:end3])]=values[chanInd3:end3]
+            beg2=beg3+len(values[chanInd3:end3])
+                
+    #run through data array to sort into the different channels
+    #x=0
     
+#    for i in range(0,len(values),nChannels*int(pixBuffer)):
+#        if readChan1 is True:
+#            channel1Indx = i 
+#            data1 = np.concatenate((data1,values[channel1Indx:channel1Indx+int(pixBuffer)]))
+#            
+#        if nChannels > 1 and readChan2 is True:
+#            channel2Indx = i+pixBuffer
+#            data2 = np.concatenate((data2,values[channel2Indx:channel2Indx+int(pixBuffer)]))
+#            
+#        if nChannels > 2 and readChan3 is True:
+#            channel3Indx = i+(2*pixBuffer)
+#            data3 = np.concatenate((data3,values[channel3Indx:channel3Indx+int(pixBuffer)]))
+#    
     
     output = dict()
     if readChan1 is True:
