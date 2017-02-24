@@ -6,6 +6,8 @@ Created on Wed May 18 14:45:10 2016
 """
 
 import numpy as np
+import struct
+import sys
 #def get_key(key=None,dictionary=None):
 #    """small function to get values from keys in the dictionary of the header.
 #    necessary since the header output has a funny format. To be removed in 
@@ -14,7 +16,7 @@ import numpy as np
     
     
 def read_in_data(filePath=None, header = None, 
-                 readChan1=True,readChan2=True,readChan3=True,readChan4=True):
+                 readChan1=False,readChan2=False,readChan3=False,readChan4=False):
     """function to read the binary data (the actual data coming from the
     Analog Inputs of the NI cards), as recorded by scanM. It requires the
     dictionary provided by "read_in_header" function to properly process data"""
@@ -37,36 +39,32 @@ def read_in_data(filePath=None, header = None,
 
     
     #open binary - right now the whole file is read, which could lead to problems for large files
-#    with open(filePath,"rb") as fid:
-#        dummie1=fid.read(-1)
-#   
-    #I suspect that only every other value contains information from the pmts
-    #although it could also be that the data stored in "index" is also indicating 
-    #something else - sign for instance?
-#    values = np.array(list(dummie1[0::2]),dtype=int)
-    
-    #I suspect that only every other value contains information from the pmts
-    #although it could also be that the data stored in "index" is also indicating 
-    #something else - sign for instance?
-    values = np.array([],dtype="int32")
-    #open binary in chunks
+
+#    
+    #read data in x steps
+    steps=4
+    #open binary data 
     with open(filePath,"rb") as fid:
         #move to end of file and get the total number of bytes
         numBytes = fid.seek(0,2)
         #move back to beg of file
         fid.seek(0,0)
-        #print (fid.tell())
-        #read the first fifth of the file
-        temp = fid.read(int(numBytes/5))
-        while temp != b"":
-            #print (temp)
-            #transform binary to decimal
-            temp = list(temp)
-            #grab only every other value from temp
-            values = np.append(values,temp[::2])
-            #read more fifths of the file
-            temp = fid.read(int(numBytes/5))
+        #the data is composed of 16bit integers, 
+        #meaning each number is represented with 2 bytes
+        values=np.array([],dtype="int16")
+        for i in range(steps):
             #print (fid.tell())
+            #read the first fifth of the file
+            length2read=int(numBytes/steps)
+            temp = fid.read(length2read)
+        
+            numList = ["h"]*int(length2read/2) # each number is represented by two bytes
+            numList = "".join(numList)
+        
+            values = np.concatenate((values,struct.unpack_from(numList,temp,offset=0)))
+            
+        
+
         
 
     #number of channels recorded is given by the data lenght divided by result 
