@@ -24,9 +24,13 @@ def read_in_data(filePath=None, header = None,
     # grab some variables from header dictionary:
     frameWidth = int(header["FrameWidth"])
     frameHeight = int(header["FrameHeight"])
+    
+    # Stimulus Buffer per Frame (aka how many frames are stored in one chunk)
+    StimBufPerFr = int(header["StimBufPerFr"])
+    
     #it seems that the framer counter, counts backwards, so to get the number of 
     #frames, one needs to take the total number of frames and subtract from the counter
-    nFrames = int(header["NumberOfFrames"])-int(header["FrameCounter"])
+    nFrames = (int(header["NumberOfFrames"])-int(header["FrameCounter"]))*StimBufPerFr
     
 
 
@@ -34,6 +38,8 @@ def read_in_data(filePath=None, header = None,
     #starts - necessary so that later one can sort the binary data according to the 
     #channels)
     pixBuffer = int(header["PixelBuffer_#0_Length"])
+    
+   
 
     ##########___________READ IN PIXELS___________________
 
