@@ -27,12 +27,11 @@ def read_in_data(filePath=None, header = None,
     
     # Stimulus Buffer per Frame (aka how many frames are stored in one chunk)
     StimBufPerFr = int(header["StimBufPerFr"])
-    
+
     #it seems that the framer counter, counts backwards, so to get the number of 
     #frames, one needs to take the total number of frames and subtract from the counter
     nFrames = (int(header["NumberOfFrames"])-int(header["FrameCounter"]))*StimBufPerFr
     
-
 
     #recording buffer (aka how much of each channel is saved before the next one 
     #starts - necessary so that later one can sort the binary data according to the 
@@ -77,7 +76,7 @@ def read_in_data(filePath=None, header = None,
     # of frameWidthXframeHeightXnFrames 
     #- couldn't find this information in the header
     nChannels = int(len(values)/(nFrames*frameWidth*frameHeight))
-
+    
     
     #empty arrays to store data
     ###to do: preallocate array the size of each should be (nFrames*frameWidth*frameHeight)
@@ -191,16 +190,19 @@ def read_in_header(filePath=None):
 
 
 
-def to_frame(dataArray=[],nFrames=1,frameHeight=512,frameWidth=652):
+def to_frame(dataArray=[],frameTotal=2,frameCounter=1,frameBuffer=1,frameHeight=512,frameWidth=652):
     """function to reshape the dataArray into frame format. Currently it only
     works with the direct scan mode (s shaped).Note that this function does not 
     cut off retrace periods.
     
     
-    nFrames is the number of recorded frames.\n
+    frameTotal is the total number of frames.\n
+    frameCounter counts backwards from frameTotal \n
+    frameBuffer is the number of frames stored in one chunck. \n
     frameHeight is the number of pixels in the y axis.\n
     frameWidth is the number of pixels in the x axis\n"""
-
+    
+    nFrames=(frameTotal-frameCounter)*frameBuffer
     
     c1=np.reshape(dataArray[0:nFrames*frameHeight*frameWidth],
                  (nFrames,frameHeight,frameWidth),
@@ -226,6 +228,7 @@ def trigger_detection(frameData,triggerLevel=220,triggerMode=1):
     #####################
     
     #drop triggers depending on trigger mode.
+
     indexes=indexes[::triggerMode]
     #populate triggerArray with ones
     trigArray[indexes]=1

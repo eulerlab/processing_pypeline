@@ -29,9 +29,12 @@ fileName = "M1_RRS1_1"
 dicHeader = rsm.read_in_header(filePath = filePath+fileName+".smh")
 
 #grab information from the header
-frameN = int(dicHeader["FrameCounter"])
+frameN = int(dicHeader["NumberOfFrames"])
+frameC = int(dicHeader["FrameCounter"])
+frameB = int(dicHeader["StimBufPerFr"])
 frameH = int(dicHeader["FrameHeight"])
 frameW = int(dicHeader["FrameWidth"])
+
 #sampRate = int(dicHeader[""])
 
 #read in binary data, output is a dictionary, where each key is one channel.
@@ -40,11 +43,11 @@ output = rsm.read_in_data(filePath=filePath+fileName+".smp",header=dicHeader,
                           readChan1=True,readChan2=False,readChan3=False,readChan4=False)
 
 #converting the data from serialized to frames. Only doing this for channel1
-frame1 = rsm.to_frame(output["chan1"],nFrames=frameN,frameHeight=frameH,frameWidth=frameW)
+frame1 = rsm.to_frame(output["chan1"],frameTotal=frameN,frameCounter=frameC,frameBuffer=frameB,frameHeight=frameH,frameWidth=frameW)
 
 
 #convert data from channel three to detect triggers
-frame3 = rsm.to_frame(output["chan3"],nFrames=frameN,frameHeight=frameH,frameWidth=frameW)
+frame3 = rsm.to_frame(output["chan3"],frameTotal=frameN,frameCounter=frameC,frameBuffer=frameB,frameHeight=frameH,frameWidth=frameW)
 indexes,trigArray1 = rsm.trigger_detection(frameData=frame3,triggerLevel=220,triggerMode=2)
 
 
